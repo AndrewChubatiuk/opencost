@@ -25,7 +25,7 @@ const (
 	PodNameEnvVar                  = "POD_NAME"
 	ClusterIDEnvVar                = "CLUSTER_ID"
 	ClusterProfileEnvVar           = "CLUSTER_PROFILE"
-	PrometheusServerEndpointEnvVar = "PROMETHEUS_SERVER_ENDPOINT"
+	PrometheusServerEndpointEnvVar = "%sPROMETHEUS_SERVER_ENDPOINT"
 	MaxQueryConcurrencyEnvVar      = "MAX_QUERY_CONCURRENCY"
 	QueryLoggingFileEnvVar         = "QUERY_LOGGING_FILE"
 	RemoteEnabledEnvVar            = "REMOTE_WRITE_ENABLED"
@@ -55,15 +55,15 @@ const (
 	ErrorReportingEnabledEnvVar   = "ERROR_REPORTING_ENABLED"
 	ValuesReportingEnabledEnvVar  = "VALUES_REPORTING_ENABLED"
 
-	DBBasicAuthUsername = "DB_BASIC_AUTH_USERNAME"
-	DBBasicAuthPassword = "DB_BASIC_AUTH_PW"
-	DBBearerToken       = "DB_BEARER_TOKEN"
+	DBBasicAuthUsername = "%sDB_BASIC_AUTH_USERNAME"
+	DBBasicAuthPassword = "%sDB_BASIC_AUTH_PW"
+	DBBearerToken       = "%sDB_BEARER_TOKEN"
 
 	MultiClusterBasicAuthUsername = "MC_BASIC_AUTH_USERNAME"
 	MultiClusterBasicAuthPassword = "MC_BASIC_AUTH_PW"
 	MultiClusterBearerToken       = "MC_BEARER_TOKEN"
 
-	InsecureSkipVerify = "INSECURE_SKIP_VERIFY"
+	InsecureSkipVerify = "%sINSECURE_SKIP_VERIFY"
 
 	KubeConfigPathEnvVar = "KUBECONFIG_PATH"
 
@@ -101,6 +101,21 @@ const (
 
 	ExportCSVFile = "EXPORT_CSV_FILE"
 )
+
+type PrometheusType int64
+
+const (
+	Server PrometheusType = iota
+	Scrape
+)
+
+func (pt PrometheusType) envFormat(envStr string) string {
+	value := ""
+	if pt == Scrape {
+		value = "SCRAPE_"
+	}
+	return fmt.Sprintf(envStr, value)
+}
 
 const DefaultConfigMountPath = "/var/configs"
 
@@ -270,14 +285,21 @@ func GetClusterID() string {
 	return Get(ClusterIDEnvVar, "")
 }
 
-// GetPrometheusServerEndpoint returns the environment variable value for PrometheusServerEndpointEnvVar which
-// represents the prometheus server endpoint used to execute prometheus queries.
-func GetPrometheusServerEndpoint() string {
-	return Get(PrometheusServerEndpointEnvVar, "")
+// GetPrometheusEndpoints returns the environment variables values for
+// PrometheusServerEndpointEnvVar which represents the prometheus server endpoint used to execute prometheus queries and
+// SCRAPE_PrometheusServerEndpointEnvVar which represents prometheus scrape server endpoint used to get scrape config.
+func GetPrometheusEndpoints() map[PrometheusType]string {
+	output := map[PrometheusType]string{
+		Server: Get(PrometheusServerEndpointEnvVar, ""),
+	}
+	if value := Get(Scrape.envFormat(PrometheusServerEndpointEnvVar), ""); value != "" {
+		output[Scrape] = value
+	}
+	return output
 }
 
-func GetInsecureSkipVerify() bool {
-	return GetBool(InsecureSkipVerify, false)
+func GetInsecureSkipVerify(clientType PrometheusType) bool {
+	return GetBool(clientType.envFormat(InsecureSkipVerify), false)
 }
 
 // IsAggregateCostModelCacheDisabled returns the environment variable value for DisableAggregateCostModelCache which
@@ -414,17 +436,16 @@ func GetQueryLoggingFile() string {
 	return Get(QueryLoggingFileEnvVar, "")
 }
 
-func GetDBBasicAuthUsername() string {
-	return Get(DBBasicAuthUsername, "")
+func GetDBBasicAuthUsername(clientType PrometheusType) string {
+	return Get(clientType.envFormat(DBBasicAuthUsername), "")
 }
 
-func GetDBBasicAuthUserPassword() string {
-	return Get(DBBasicAuthPassword, "")
-
+func GetDBBasicAuthUserPassword(clientType PrometheusType) string {
+	return Get(clientType.envFormat(DBBasicAuthPassword), "")
 }
 
-func GetDBBearerToken() string {
-	return Get(DBBearerToken, "")
+func GetDBBearerToken(clientType PrometheusType) string {
+	return Get(clientType.envFormat(DBBearerToken), "")
 }
 
 // GetMultiClusterBasicAuthUsername returns the environemnt variable value for MultiClusterBasicAuthUsername

@@ -286,13 +286,13 @@ func (cm *CostModel) ComputeAllocation(start, end time.Time, resolution time.Dur
 func (cm *CostModel) DateRange() (time.Time, time.Time, error) {
 	ctx := prom.NewNamedContext(cm.PrometheusClient, prom.AllocationContextName)
 
-	resOldest, _, err := ctx.QuerySync(fmt.Sprintf(queryFmtOldestSample, "90d", "1h"))
+	resOldest, _, err := ctx.QuerySync(fmt.Sprintf(queryFmtOldestSample, env.GetPromClusterFilter(), "90d", "1h"))
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("querying oldest sample: %w", err)
 	}
 	oldest := time.Unix(int64(resOldest[0].Values[0].Value), 0)
 
-	resNewest, _, err := ctx.QuerySync(fmt.Sprintf(queryFmtNewestSample, "90d", "1h"))
+	resNewest, _, err := ctx.QuerySync(fmt.Sprintf(queryFmtNewestSample, env.GetPromClusterFilter(), "90d", "1h"))
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("querying oldest sample: %w", err)
 	}

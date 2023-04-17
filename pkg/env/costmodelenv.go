@@ -68,7 +68,8 @@ const (
 
 	KubeConfigPathEnvVar = "KUBECONFIG_PATH"
 
-	UTCOffsetEnvVar = "UTC_OFFSET"
+	UTCOffsetEnvVar                  = "UTC_OFFSET"
+	CurrentClusterIdFilterEnabledVar = "CURRENT_CLUSTER_ID_FILTER_ENABLED"
 
 	CacheWarmingEnabledEnvVar            = "CACHE_WARMING_ENABLED"
 	ETLEnabledEnvVar                     = "ETL_ENABLED"
@@ -298,6 +299,16 @@ func GetPrometheusEndpoints() map[PrometheusType]string {
 	}
 	return output
 }
+
+// GetPromClusterFilter returns environment variable value CurrentClusterIdFilterEnabledVar which
+// represents additional prometheus filter for all metrics for current cluster id
+func GetPromClusterFilter() string {
+	if GetBool(CurrentClusterIdFilterEnabledVar, false) {
+		return fmt.Sprintf("%s=\"%s\"", GetPromClusterLabel(), GetClusterID())
+	}
+	return ""
+}
+
 
 func GetInsecureSkipVerify(clientType PrometheusType) bool {
 	return GetBool(clientType.envFormat(InsecureSkipVerify), false)
